@@ -4,14 +4,21 @@ import {
   Lock,
   Mail,
   User,
-  Sparkles,
   CheckCircle2,
   ArrowRight,
   ShieldCheck,
+  AlertCircle,
 } from 'lucide-react';
+import {
+  sanitizeInput,
+  validateEmail,
+  validatePassword,
+  hashPassword,
+  authRateLimiter,
+} from '../lib/security';
 
 // Google Multicolor G SVG Icon
-export function GoogleIcon({ className = 'w-5 h-5' }) {
+export function GoogleIcon({ className = 'w-4 h-4' }) {
   return (
     <svg className={className} viewBox="0 0 24 24">
       <path
@@ -37,7 +44,7 @@ export function GoogleIcon({ className = 'w-5 h-5' }) {
 export default function AuthModal({
   isOpen,
   onClose,
-  initialMode = 'signin', // 'signin' | 'signup'
+  initialMode = 'signin',
   onLoginSuccess,
 }) {
   const [mode, setMode] = useState(initialMode);
@@ -49,111 +56,148 @@ export default function AuthModal({
 
   if (!isOpen) return null;
 
-  // Handle Google Login
+  // Google Login Simulation
   const handleGoogleLogin = () => {
+    // Rate limit check
+    const rateCheck = authRateLimiter.check('auth-google');
+    if (!rateCheck.allowed) {
+      setError(`Too many requests. Please wait ${rateCheck.retryAfterSec} seconds before retrying.`);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
+
     setTimeout(() => {
       const user = {
         name: 'Farhan Sayyed',
         email: 'farhansayyedhu@gmail.com',
-        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        avatar: null,
         provider: 'google',
-        streak: 3,
-        joinedDate: 'October 2026',
+        role: 'user',
+        sessionCreatedAt: Date.now(),
       };
+      authRateLimiter.reset('auth-google');
       setIsLoading(false);
       onLoginSuccess?.(user);
       onClose();
-    }, 700);
+    }, 500);
   };
 
-  // Handle Email/Password Submit
-  const handleSubmit = (e) => {
+  // Form Submit with Validation, Sanitization, Rate Limiting, and Hashing
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('Please fill in all required fields.');
-      return;
-    }
-    setIsLoading(true);
     setError(null);
 
-    setTimeout(() => {
-      const user = {
-        name: name || (email.split('@')[0] ? email.split('@')[0].replace('.', ' ') : 'User'),
-        email: email,
-        avatar: null,
-        provider: 'email',
-        streak: 1,
-        joinedDate: 'October 2026',
-      };
+    // Rate Limiting
+    const rateCheck = authRateLimiter.check('auth-form');
+    if (!rateCheck.allowed) {
+      setError(`Too many authentication attempts. Please wait ${rateCheck.retryAfterSec} seconds.`);
+      return;
+    }
+
+    // Input Sanitization
+    const cleanEmail = sanitizeInput(email);
+    const cleanName = sanitizeInput(name);
+
+    if (!cleanEmail || !password) {
+      setError('Please provide both email and password.');
+      return;
+    }
+
+    if (!validateEmail(cleanEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    if (mode === 'signup') {
+      const pwCheck = validatePassword(password);
+      if (!pwCheck.valid) {
+        setError(pwCheck.message || 'Password must be at least 8 characters with letters and numbers.');
+        return;
+      }
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Securely hash password via Web Crypto API SHA-256
+      const passwordHash = await hashPassword(password);
+
+      setTimeout(() => {
+        const user = {
+          name: cleanName || cleanEmail.split('@')[0],
+          email: cleanEmail,
+          passwordHash,
+          provider: 'email',
+          role: 'user',
+          sessionCreatedAt: Date.now(),
+        };
+        authRateLimiter.reset('auth-form');
+        setIsLoading(false);
+        onLoginSuccess?.(user);
+        onClose();
+      }, 500);
+    } catch (err) {
       setIsLoading(false);
-      onLoginSuccess?.(user);
-      onClose();
-    }, 600);
+      setError('An error occurred during authentication processing.');
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fadeIn">
-      <div className="relative w-full max-w-md rounded-3xl bg-slate-900/95 border border-indigo-500/30 p-7 shadow-2xl shadow-indigo-950/50 overflow-hidden">
-        {/* Glow ambient background aura */}
-        <div className="absolute -top-20 -right-20 w-52 h-52 rounded-full bg-indigo-500/15 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -left-20 w-52 h-52 rounded-full bg-purple-500/15 blur-3xl pointer-events-none" />
-
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+      <div className="relative w-full max-w-md rounded-lg bg-slate-900 border border-slate-800 p-6 shadow-xl text-slate-100">
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+          className="absolute top-4 right-4 p-1.5 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
         {/* Modal Header */}
-        <div className="mb-6 text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30 mb-3">
-            <Sparkles className="w-6 h-6" />
-          </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">
-            {mode === 'signin' ? 'Welcome Back to Gestura' : 'Create Your Account'}
+        <div className="mb-5 text-left">
+          <h2 className="text-lg font-semibold text-white tracking-tight">
+            {mode === 'signin' ? 'Sign In to Account' : 'Register New Account'}
           </h2>
           <p className="text-xs text-slate-400 mt-1">
             {mode === 'signin'
-              ? 'Sign in to save your mood streaks and adaptive activity history'
-              : 'Join Gestura for personalized AI vision mood tracking'}
+              ? 'Access your saved session profile and calibration data.'
+              : 'Create credentials for client-side profile isolation.'}
           </p>
         </div>
 
-        {/* Google One-Click Login Button */}
+        {/* Google Authentication Button */}
         <div className="space-y-4">
           <button
             type="button"
             onClick={handleGoogleLogin}
             disabled={isLoading}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-2xl bg-white hover:bg-slate-100 text-slate-800 font-semibold text-sm shadow-md transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-2.5 px-3.5 py-2.5 rounded bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 font-medium text-xs shadow-sm transition cursor-pointer disabled:opacity-50"
           >
-            <GoogleIcon className="w-5 h-5 shrink-0" />
+            <GoogleIcon className="w-4 h-4 shrink-0" />
             <span>Continue with Google</span>
           </button>
 
           {/* Divider */}
           <div className="relative flex items-center justify-center">
             <div className="w-full border-t border-slate-800" />
-            <span className="absolute px-3 bg-slate-900 text-[11px] font-mono text-slate-500 uppercase">
-              Or with email
+            <span className="absolute px-2.5 bg-slate-900 text-[10px] font-mono text-slate-500 uppercase">
+              Or with credentials
             </span>
           </div>
 
-          {/* Tab Switcher */}
-          <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-800/80 border border-slate-700/80 text-xs font-semibold">
+          {/* Mode Switcher */}
+          <div className="grid grid-cols-2 p-1 rounded bg-slate-950 border border-slate-800 text-xs">
             <button
               type="button"
               onClick={() => {
                 setMode('signin');
                 setError(null);
               }}
-              className={`py-2 rounded-lg transition cursor-pointer ${
+              className={`py-1.5 rounded transition cursor-pointer font-medium ${
                 mode === 'signin'
-                  ? 'bg-indigo-600 text-white shadow-md'
+                  ? 'bg-slate-800 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -165,38 +209,39 @@ export default function AuthModal({
                 setMode('signup');
                 setError(null);
               }}
-              className={`py-2 rounded-lg transition cursor-pointer ${
+              className={`py-1.5 rounded transition cursor-pointer font-medium ${
                 mode === 'signup'
-                  ? 'bg-indigo-600 text-white shadow-md'
+                  ? 'bg-slate-800 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Sign Up
+              Register
             </button>
           </div>
 
-          {/* Error Notice */}
+          {/* Error Message */}
           {error && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
-              {error}
+            <div className="p-3 rounded bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{error}</span>
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-3.5">
+          <form onSubmit={handleSubmit} className="space-y-3">
             {mode === 'signup' && (
               <div>
                 <label className="block text-[11px] font-mono text-slate-400 mb-1">
                   FULL NAME
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+                  <User className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Farhan Sayyed"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500 transition"
+                    className="w-full pl-9 pr-3 py-2 rounded bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600 text-xs focus:outline-none focus:border-blue-500 transition font-sans"
                   />
                 </div>
               </div>
@@ -207,40 +252,29 @@ export default function AuthModal({
                 EMAIL ADDRESS
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+                <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500 transition"
+                  className="w-full pl-9 pr-3 py-2 rounded bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600 text-xs focus:outline-none focus:border-blue-500 transition font-sans"
                 />
               </div>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-[11px] font-mono text-slate-400">
-                  PASSWORD
-                </label>
-                {mode === 'signin' && (
-                  <button
-                    type="button"
-                    onClick={() => alert('Password reset link sent to your email!')}
-                    className="text-[11px] text-indigo-400 hover:underline"
-                  >
-                    Forgot password?
-                  </button>
-                )}
-              </div>
+              <label className="block text-[11px] font-mono text-slate-400 mb-1">
+                PASSWORD
+              </label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
+                <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••••••"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500 transition"
+                  placeholder="Minimum 8 characters"
+                  className="w-full pl-9 pr-3 py-2 rounded bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600 text-xs focus:outline-none focus:border-blue-500 transition font-sans"
                 />
               </div>
             </div>
@@ -248,40 +282,29 @@ export default function AuthModal({
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-sm shadow-xl shadow-indigo-600/30 transition-all duration-200 cursor-pointer disabled:opacity-60"
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs shadow-sm transition cursor-pointer disabled:opacity-50"
             >
               {isLoading ? (
-                <span>Authenticating...</span>
+                <span>Processing...</span>
               ) : mode === 'signin' ? (
                 <>
-                  <span>Sign In to Gestura</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span>Sign In</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </>
               ) : (
                 <>
                   <span>Create Account</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}
             </button>
           </form>
-
-          {/* Quick Demo Login Option */}
-          <div className="pt-2 text-center">
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              className="text-xs text-slate-400 hover:text-indigo-300 transition"
-            >
-              ⚡ Quick test: <strong>Sign in as Farhan Sayyed (1-Click)</strong>
-            </button>
-          </div>
         </div>
 
         {/* Security badge footer */}
-        <div className="mt-5 pt-3 border-t border-slate-800/80 flex items-center justify-center gap-2 text-[11px] text-slate-500">
+        <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-center gap-1.5 text-[10px] font-mono text-slate-500">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Biometric & session data encrypted client-side</span>
+          <span>SHA-256 Client-Hashed Credentials</span>
         </div>
       </div>
     </div>

@@ -5,16 +5,10 @@ import {
   MOOD_DETAILS,
 } from '../data/activities';
 import {
-  Sparkles,
   Clock,
   Zap,
   ArrowRight,
-  Filter,
-  CheckCircle,
-  Play,
   RotateCw,
-  Heart,
-  Flame,
   Wind,
   Activity,
   PenTool,
@@ -44,7 +38,6 @@ const ICON_MAP = {
   Moon,
   Palette,
   Users,
-  Sparkles,
   HeartHandshake,
   Zap,
   Sun,
@@ -52,7 +45,6 @@ const ICON_MAP = {
   ShieldCheck,
   Layers,
   Share2,
-  Heart,
   Feather,
   Coffee,
   UserCheck,
@@ -87,46 +79,46 @@ export default function RecommendationGrid({
   ];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       {/* Grid Top Navigation / Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
         <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-              Adaptive Recommendations
+          <div className="flex items-center gap-2.5">
+            <h3 className="text-base font-semibold text-white tracking-tight">
+              Adaptive Activity Protocols
             </h3>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-medium">
-              Matched to {currentMoodInfo.label.split('/')[0].trim()}
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+              State: {currentMoodInfo.label.split('/')[0].trim()}
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Personalized micro-actions designed to optimize your cognitive & emotional state
+            Structured task interventions matched to current expression classification
           </p>
         </div>
 
         {/* Shuffle / Refresh button */}
         <button
           onClick={onShuffle}
-          className="self-start sm:self-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-750 text-slate-300 hover:text-white border border-slate-700 text-xs font-medium transition cursor-pointer"
-          title="Shuffle or regenerate activity suggestions"
+          className="self-start sm:self-auto flex items-center gap-1.5 px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-mono transition cursor-pointer"
+          title="Regenerate action recommendations"
         >
-          <RotateCw className="w-3.5 h-3.5 text-indigo-400" />
+          <RotateCw className="w-3.5 h-3.5 text-blue-400" />
           <span>Shuffle Options</span>
         </button>
       </div>
 
-      {/* Category Pills Filter */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+      {/* Category Filter Tabs */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
         {categoriesList.map((cat) => {
           const isSelected = activeCategory === cat;
           return (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all cursor-pointer border ${
+              className={`px-3 py-1.5 rounded text-xs font-medium whitespace-nowrap transition cursor-pointer border ${
                 isSelected
-                  ? 'bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/25'
-                  : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:text-slate-200 hover:bg-slate-850'
+                  ? 'bg-blue-600 text-white border-blue-500'
+                  : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200 hover:bg-slate-800'
               }`}
             >
               {cat === CATEGORIES.ALL ? 'All Categories' : cat}
@@ -136,92 +128,62 @@ export default function RecommendationGrid({
       </div>
 
       {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {filteredActivities.length > 0 ? (
           filteredActivities.map((activity, index) => {
-            const IconComponent = ICON_MAP[activity.icon] || Sparkles;
+            const IconComponent = ICON_MAP[activity.icon] || Activity;
 
             return (
               <div
                 key={activity.id}
                 onClick={() => onSelectActivity(activity)}
-                className="group relative flex flex-col justify-between p-6 rounded-3xl glass-panel border border-slate-800/80 hover:border-indigo-500/50 hover:bg-slate-800/40 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl hover:shadow-indigo-500/10 cursor-pointer overflow-hidden"
+                className="group relative flex flex-col justify-between p-5 rounded-lg bg-slate-900/90 border border-slate-800 hover:border-blue-500/50 hover:bg-slate-850 transition cursor-pointer shadow-sm"
               >
-                {/* Number index indicator */}
+                {/* Index tag */}
                 <div className="absolute top-4 right-4 flex items-center gap-1.5">
                   {index === 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono font-medium">
-                      Top Pick
+                    <span className="px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-300 border border-emerald-500/30 text-[10px] font-mono">
+                      Recommended
                     </span>
                   )}
-                  <span className="text-slate-600 font-mono text-xs">#{index + 1}</span>
+                  <span className="text-slate-500 font-mono text-[11px]">#{index + 1}</span>
                 </div>
 
                 <div>
-                  {/* Category & Duration badges */}
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-lg bg-slate-800 text-indigo-300 border border-slate-700/80">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className="p-2 rounded bg-slate-800 border border-slate-700 text-blue-400 group-hover:text-blue-300 transition">
+                      <IconComponent className="w-4 h-4" />
+                    </div>
+                    <span className="text-[11px] font-mono uppercase tracking-wide text-slate-400">
                       {activity.category}
                     </span>
-                    <span className="flex items-center gap-1 text-[11px] text-slate-400 font-mono">
-                      <Clock className="w-3 h-3 text-slate-400" />
-                      {activity.duration}
-                    </span>
                   </div>
 
-                  {/* Icon & Title */}
-                  <div className="flex items-start gap-3.5 mb-3">
-                    <div className="p-3 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 group-hover:scale-110 group-hover:bg-indigo-500/20 transition-transform">
-                      <IconComponent className="w-6 h-6" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-base font-bold text-white group-hover:text-indigo-200 transition-colors">
-                        {activity.title}
-                      </h4>
-                      <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                        {activity.subtitle}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Tags */}
-                  {activity.tags && (
-                    <div className="flex flex-wrap gap-1.5 mt-3">
-                      {activity.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className="text-[10px] px-2 py-0.5 rounded-md bg-slate-900/60 text-slate-400 border border-slate-800 font-mono"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+                  <h4 className="text-sm font-semibold text-slate-100 group-hover:text-blue-400 transition mb-1 leading-snug">
+                    {activity.title}
+                  </h4>
+                  <p className="text-xs text-slate-400 leading-relaxed line-clamp-2">
+                    {activity.subtitle}
+                  </p>
                 </div>
 
-                {/* Footer action */}
-                <div className="mt-5 pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                  <span className="text-xs font-semibold text-indigo-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                    Launch Activity <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
-                  <div className="w-8 h-8 rounded-xl bg-slate-800/80 flex items-center justify-center text-slate-300 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                    <Play className="w-3.5 h-3.5 fill-current" />
+                <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+                  <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                    <Clock className="w-3.5 h-3.5 text-slate-500" />
+                    <span>{activity.duration}</span>
                   </div>
+
+                  <span className="flex items-center gap-1 text-blue-400 font-medium group-hover:translate-x-0.5 transition-transform text-xs">
+                    <span>Execute</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
                 </div>
               </div>
             );
           })
         ) : (
-          <div className="col-span-full p-8 text-center glass-panel rounded-3xl border border-slate-800">
-            <p className="text-sm text-slate-400">
-              No recommendations found in this category for {currentMood}.
-            </p>
-            <button
-              onClick={() => setActiveCategory(CATEGORIES.ALL)}
-              className="mt-3 text-xs text-indigo-400 hover:underline cursor-pointer"
-            >
-              Show all categories
-            </button>
+          <div className="col-span-full py-12 text-center text-slate-500 text-xs font-mono">
+            No activities matching selected category.
           </div>
         )}
       </div>

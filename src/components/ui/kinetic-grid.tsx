@@ -80,7 +80,7 @@ export default function KineticGrid({
       cols: number,
       rows: number,
     ): { pt: Point; proximity: number } => {
-      // Edge pin — smoothly locks boundary rows/cols in place
+      // Edge pin :  smoothly locks boundary rows/cols in place
       const edgeMargin = 1.5;
       const colPin = Math.min(
         col / edgeMargin,

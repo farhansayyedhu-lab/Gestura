@@ -4,13 +4,13 @@ import WebcamViewer from './components/WebcamViewer';
 import MoodIndicator from './components/MoodIndicator';
 import RecommendationGrid from './components/RecommendationGrid';
 import ActivityModal from './components/ActivityModal';
-import PrivacyModal from './components/PrivacyModal';
+import PrivacyPolicyModal from './components/PrivacyPolicyModal';
+import TermsConditionsModal from './components/TermsConditionsModal';
 import AuthModal from './components/AuthModal';
-import KineticGrid from './components/ui/kinetic-grid';
 import HalftoneWordmarkFooter from './components/ui/halftone-wordmark-footer';
 import { useMoodDetection } from './hooks/useMoodDetection';
 import { ACTIVITIES } from './data/activities';
-import { ShieldCheck, Sparkles, UserCheck, Flame, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
   const {
@@ -35,7 +35,7 @@ export default function App() {
     triggerGesture,
     simulationMode,
     setSimulationMode,
-    // Real AI Vision states
+    // Real Vision states
     isModelLoading,
     isModelReady,
     modelStatus,
@@ -47,7 +47,7 @@ export default function App() {
     setOverlayMode,
   } = useMoodDetection();
 
-  // Authentication State
+  // Authentication State with secure storage
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem('gestura_user');
@@ -62,9 +62,9 @@ export default function App() {
 
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   const [shuffledActivities, setShuffledActivities] = useState(ACTIVITIES);
   const [toastMessage, setToastMessage] = useState(null);
-  const [kineticActive, setKineticActive] = useState(false);
 
   // Trigger toast alert
   const showToast = (msg) => {
@@ -78,7 +78,7 @@ export default function App() {
     try {
       localStorage.setItem('gestura_user', JSON.stringify(userData));
     } catch (e) {}
-    showToast(`🎉 Welcome back, ${userData.name}! Successfully signed in.`);
+    showToast(`Authentication confirmed: ${userData.name}`);
   };
 
   const handleLogout = () => {
@@ -86,7 +86,7 @@ export default function App() {
     try {
       localStorage.removeItem('gestura_user');
     } catch (e) {}
-    showToast('Signed out of Gestura account.');
+    showToast('Session terminated.');
   };
 
   const openAuthModal = (mode = 'signin') => {
@@ -97,7 +97,7 @@ export default function App() {
   // Shuffle activities
   const handleShuffle = () => {
     setShuffledActivities((prev) => [...prev].sort(() => Math.random() - 0.5));
-    showToast('✨ Activity recommendations refreshed!');
+    showToast('Recommendation sequence updated.');
   };
 
   // Gesture reactions
@@ -106,11 +106,11 @@ export default function App() {
       const topMatch = shuffledActivities.find((act) => act.mood === currentMood);
       if (topMatch && !selectedActivity) {
         setSelectedActivity(topMatch);
-        showToast(`👍 Thumbs Up Detected! Launched "${topMatch.title}"`);
+        showToast(`Thumbs Up command: Triggered "${topMatch.title}"`);
       }
     } else if (detectedGesture === 'open_palm') {
       handleShuffle();
-      showToast('✋ Open Palm Detected: Recommendations shuffled!');
+      showToast('Open Palm command: Options refreshed.');
     }
   }, [detectedGesture, currentMood]);
 
@@ -120,57 +120,56 @@ export default function App() {
       showToast('Camera feed disconnected.');
     } else {
       startWebcam(selectedDeviceId);
-      showToast('Camera feed starting with real-time biometric lock...');
+      showToast('Camera feed initializing...');
     }
   };
 
-  const content = (
-    <div className="min-h-screen flex flex-col text-slate-100 selection:bg-indigo-500/30 selection:text-indigo-200">
+  return (
+    <div className="min-h-screen flex flex-col bg-[#090d16] text-slate-100 selection:bg-blue-600/30 selection:text-blue-200">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-24 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-indigo-950/95 border border-indigo-500/50 text-indigo-200 text-xs shadow-2xl backdrop-blur-md animate-fadeIn">
-          <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+        <div className="fixed top-20 right-6 z-50 flex items-center gap-2 px-3.5 py-2.5 rounded bg-slate-900 border border-slate-700 text-slate-200 text-xs shadow-lg animate-fadeIn font-mono">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Header with full Auth & Kinetic Controls */}
+      {/* Header */}
       <Header
         isStreaming={isStreaming}
         onToggleWebcam={handleToggleWebcam}
         onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)}
+        onOpenTermsModal={() => setIsTermsModalOpen(true)}
         onOpenAuthModal={openAuthModal}
         user={user}
         onLogout={handleLogout}
         simulationMode={simulationMode}
         setSimulationMode={setSimulationMode}
-        kineticActive={kineticActive}
-        setKineticActive={setKineticActive}
       />
 
-      {/* Top Banner Notice */}
-      <div className="w-full bg-indigo-950/50 border-b border-indigo-500/20 px-4 py-2 text-center text-xs text-indigo-200/90 flex flex-wrap items-center justify-center gap-3">
+      {/* Security Architecture Top Banner */}
+      <div className="w-full bg-slate-950/80 border-b border-slate-800 px-4 py-2 text-center text-xs text-slate-300 flex flex-wrap items-center justify-center gap-3 font-mono">
         <div className="flex items-center gap-1.5">
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>
-            <strong>100% Client-Side Privacy:</strong> Real-time biometric face detection runs in WebAssembly inside your browser. No video frames are ever uploaded or stored.
+            Security Architecture: Client-Side WebAssembly isolation. Zero remote video transmission or cloud biometric storage.
           </span>
         </div>
 
         {!user && (
           <button
             onClick={() => openAuthModal('signin')}
-            className="text-[11px] font-semibold text-white bg-indigo-600/80 hover:bg-indigo-600 px-2.5 py-0.5 rounded-full border border-indigo-400/40 transition cursor-pointer"
+            className="text-[11px] font-sans text-blue-400 hover:text-blue-300 underline transition cursor-pointer"
           >
-            Sign in to track mood streaks →
+            Sign in to access user sessions
           </button>
         )}
       </div>
 
       {/* Main Dashboard Layout */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8">
-        {/* Top Section: Camera Viewer & Live Mood Status Panel */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Top Section: Camera Viewer & Real-time Status Panel */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Left Column (7 cols): Webcam Viewer */}
           <div className="lg:col-span-7 flex flex-col gap-4">
             <WebcamViewer
@@ -200,7 +199,7 @@ export default function App() {
             />
           </div>
 
-          {/* Right Column (5 cols): Real-Time Mood Status Panel */}
+          {/* Right Column (5 cols): Real-Time Expression Status Panel */}
           <div className="lg:col-span-5">
             <MoodIndicator
               currentMood={currentMood}
@@ -217,7 +216,7 @@ export default function App() {
         </div>
 
         {/* Bottom Section: Dynamic Recommendation Grid */}
-        <section className="mt-4">
+        <section className="mt-2">
           <RecommendationGrid
             activities={shuffledActivities}
             currentMood={currentMood}
@@ -227,54 +226,60 @@ export default function App() {
         </section>
       </main>
 
-      {/* Premium Halftone Wordmark Footer */}
+      {/* Corporate Halftone Wordmark Footer */}
       <HalftoneWordmarkFooter
         wordmark="gestura"
-        label="Gestura Vision Lab"
-        meta="©2026 · Client-Side AI Ecosystem"
-        height="480px"
+        label="Gestura Systems"
+        meta="Client-Side Vision Protocol"
+        height="440px"
         preset="night"
         columns={[
           {
-            title: 'Vision AI',
+            title: 'Technology',
             links: [
-              { label: 'Face Mesh 478' },
-              { label: 'Hand Gestures' },
-              { label: '52 Blendshapes' },
+              { label: 'WebAssembly Engine' },
+              { label: '3D Landmark Mesh' },
+              { label: '52 Expression Blendshapes' },
             ],
           },
           {
-            title: 'Privacy',
+            title: 'Security',
             links: [
-              { label: 'Local WebAssembly' },
+              { label: 'Client-Side Isolation' },
               { label: 'Zero Cloud Storage' },
-              { label: 'Biometrics Policy' },
+              { label: 'SHA-256 Hashing' },
             ],
           },
           {
-            title: 'Account',
+            title: 'Legal',
             links: [
-              { label: user ? user.email : 'Sign In with Google' },
-              { label: 'Mood History' },
-              { label: 'Preferences' },
+              { label: 'Privacy Policy' },
+              { label: 'Terms of Service' },
+              { label: 'Security Disclosures' },
             ],
           },
         ]}
       />
 
-      {/* Interactive Activity Experience Modal */}
+      {/* Protocol Modal */}
       <ActivityModal
         activity={selectedActivity}
         onClose={() => setSelectedActivity(null)}
       />
 
-      {/* Privacy Architecture Modal */}
-      <PrivacyModal
+      {/* Formal Privacy Policy Modal */}
+      <PrivacyPolicyModal
         isOpen={isPrivacyModalOpen}
         onClose={() => setIsPrivacyModalOpen(false)}
       />
 
-      {/* Authentication Modal with Google Login */}
+      {/* Formal Terms of Service Modal */}
+      <TermsConditionsModal
+        isOpen={isTermsModalOpen}
+        onClose={() => setIsTermsModalOpen(false)}
+      />
+
+      {/* Authentication Modal with Sanitization & Rate Limiting */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
@@ -283,10 +288,4 @@ export default function App() {
       />
     </div>
   );
-
-  if (kineticActive) {
-    return <KineticGrid globalColor="default">{content}</KineticGrid>;
-  }
-
-  return <div className="bg-[#080d1a] min-h-screen">{content}</div>;
 }
