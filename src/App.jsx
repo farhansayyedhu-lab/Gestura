@@ -8,11 +8,13 @@ import PrivacyPolicyModal from './components/PrivacyPolicyModal';
 import TermsConditionsModal from './components/TermsConditionsModal';
 import AuthModal from './components/AuthModal';
 import HalftoneWordmarkFooter from './components/ui/halftone-wordmark-footer';
+import LandingPage from './components/LandingPage';
 import { useMoodDetection } from './hooks/useMoodDetection';
 import { ACTIVITIES } from './data/activities';
 import { ShieldCheck, CheckCircle2 } from 'lucide-react';
 
-export default function App() {
+// ─── Dashboard (post-login view) ───────────────────────────────────────────────
+function Dashboard({ user, onLogout, onOpenPrivacyModal, onOpenTermsModal, onOpenAuthModal, onNavigateToLanding }) {
   const {
     videoRef,
     canvasRef,
@@ -35,7 +37,6 @@ export default function App() {
     triggerGesture,
     simulationMode,
     setSimulationMode,
-    // Real Vision states
     isModelLoading,
     isModelReady,
     modelStatus,
@@ -47,57 +48,28 @@ export default function App() {
     setOverlayMode,
   } = useMoodDetection();
 
-  // Authentication State with secure storage
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('gestura_user');
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      return null;
-    }
-  });
-
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState('signin');
-
   const [selectedActivity, setSelectedActivity] = useState(null);
-  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
-  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
   const [shuffledActivities, setShuffledActivities] = useState(ACTIVITIES);
   const [toastMessage, setToastMessage] = useState(null);
 
-  // Trigger toast alert
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Auth Handlers
-  const handleLoginSuccess = (userData) => {
-    setUser(userData);
-    try {
-      localStorage.setItem('gestura_user', JSON.stringify(userData));
-    } catch (e) {}
-    showToast(`Authentication confirmed: ${userData.name}`);
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    try {
-      localStorage.removeItem('gestura_user');
-    } catch (e) {}
-    showToast('Session terminated.');
-  };
-
-  const openAuthModal = (mode = 'signin') => {
-    setAuthModalMode(mode);
-    setIsAuthModalOpen(true);
-  };
-
-  // Shuffle activities
   const handleShuffle = () => {
     setShuffledActivities((prev) => [...prev].sort(() => Math.random() - 0.5));
     showToast('Recommendation sequence updated.');
+  };
+
+  const handleToggleWebcam = () => {
+    if (isStreaming) {
+      stopWebcam();
+      showToast('Camera feed disconnected.');
+    } else {
+      startWebcam(selectedDeviceId);
+      showToast('Camera feed initializing...');
+    }
   };
 
   // Gesture reactions
@@ -114,16 +86,6 @@ export default function App() {
     }
   }, [detectedGesture, currentMood]);
 
-  const handleToggleWebcam = () => {
-    if (isStreaming) {
-      stopWebcam();
-      showToast('Camera feed disconnected.');
-    } else {
-      startWebcam(selectedDeviceId);
-      showToast('Camera feed initializing...');
-    }
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-[#090d16] text-slate-100 selection:bg-blue-600/30 selection:text-blue-200">
       {/* Toast Notification */}
@@ -138,16 +100,17 @@ export default function App() {
       <Header
         isStreaming={isStreaming}
         onToggleWebcam={handleToggleWebcam}
-        onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)}
-        onOpenTermsModal={() => setIsTermsModalOpen(true)}
-        onOpenAuthModal={openAuthModal}
+        onOpenPrivacyModal={onOpenPrivacyModal}
+        onOpenTermsModal={onOpenTermsModal}
+        onOpenAuthModal={onOpenAuthModal}
         user={user}
-        onLogout={handleLogout}
+        onLogout={onLogout}
         simulationMode={simulationMode}
         setSimulationMode={setSimulationMode}
+        onNavigateToLanding={onNavigateToLanding}
       />
 
-      {/* Security Architecture Top Banner */}
+      {/* Security Banner */}
       <div className="w-full bg-slate-950/80 border-b border-slate-800 px-4 py-2 text-center text-xs text-slate-300 flex flex-wrap items-center justify-center gap-3 font-mono">
         <div className="flex items-center gap-1.5">
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -155,22 +118,12 @@ export default function App() {
             Security Architecture: Client-Side WebAssembly isolation. Zero remote video transmission or cloud biometric storage.
           </span>
         </div>
-
-        {!user && (
-          <button
-            onClick={() => openAuthModal('signin')}
-            className="text-[11px] font-sans text-blue-400 hover:text-blue-300 underline transition cursor-pointer"
-          >
-            Sign in to access user sessions
-          </button>
-        )}
       </div>
 
-      {/* Main Dashboard Layout */}
+      {/* Main Dashboard */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8">
-        {/* Top Section: Camera Viewer & Real-time Status Panel */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column (7 cols): Webcam Viewer */}
+          {/* Webcam Viewer */}
           <div className="lg:col-span-7 flex flex-col gap-4">
             <WebcamViewer
               videoRef={videoRef}
@@ -199,7 +152,7 @@ export default function App() {
             />
           </div>
 
-          {/* Right Column (5 cols): Real-Time Expression Status Panel */}
+          {/* Mood Indicator */}
           <div className="lg:col-span-5">
             <MoodIndicator
               currentMood={currentMood}
@@ -215,7 +168,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Bottom Section: Dynamic Recommendation Grid */}
+        {/* Recommendations */}
         <section className="mt-2">
           <RecommendationGrid
             activities={shuffledActivities}
@@ -226,7 +179,7 @@ export default function App() {
         </section>
       </main>
 
-      {/* Corporate Halftone Wordmark Footer */}
+      {/* Halftone Footer */}
       <HalftoneWordmarkFooter
         wordmark="gestura"
         label="Gestura Systems"
@@ -261,25 +214,86 @@ export default function App() {
         ]}
       />
 
-      {/* Protocol Modal */}
-      <ActivityModal
-        activity={selectedActivity}
-        onClose={() => setSelectedActivity(null)}
-      />
+      {/* Modals */}
+      <ActivityModal activity={selectedActivity} onClose={() => setSelectedActivity(null)} />
+    </div>
+  );
+}
 
-      {/* Formal Privacy Policy Modal */}
+// ─── Root App — Auth-Gated Router ──────────────────────────────────────────────
+export default function App() {
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gestura_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  // Controls which page is visible: Always defaults to 'landing' so user sees sign-in & details first
+  const [view, setView] = useState('landing');
+  const [opacity, setOpacity] = useState(1);
+
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState('signin');
+  const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+
+  // Fade transition helper
+  const switchView = (nextView) => {
+    setOpacity(0);
+    setTimeout(() => {
+      setView(nextView);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setOpacity(1);
+    }, 240);
+  };
+
+  const handleLoginSuccess = (userData) => {
+    setUser(userData);
+    try { localStorage.setItem('gestura_user', JSON.stringify(userData)); } catch {}
+    switchView('dashboard');
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    try { localStorage.removeItem('gestura_user'); } catch {}
+    switchView('landing');
+  };
+
+  const openAuthModal = (mode = 'signin') => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
+  };
+
+  return (
+    <div style={{ opacity, transition: 'opacity 0.24s ease', minHeight: '100vh' }}>
+      {view === 'landing' ? (
+        <LandingPage
+          onLoginSuccess={handleLoginSuccess}
+          currentUser={user}
+        />
+      ) : (
+        <Dashboard
+          user={user}
+          onLogout={handleLogout}
+          onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)}
+          onOpenTermsModal={() => setIsTermsModalOpen(true)}
+          onOpenAuthModal={openAuthModal}
+          onNavigateToLanding={() => switchView('landing')}
+        />
+      )}
+
+      {/* Global Modals */}
       <PrivacyPolicyModal
         isOpen={isPrivacyModalOpen}
         onClose={() => setIsPrivacyModalOpen(false)}
       />
-
-      {/* Formal Terms of Service Modal */}
       <TermsConditionsModal
         isOpen={isTermsModalOpen}
         onClose={() => setIsTermsModalOpen(false)}
       />
-
-      {/* Authentication Modal with Sanitization & Rate Limiting */}
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}

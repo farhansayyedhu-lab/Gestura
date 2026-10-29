@@ -24,20 +24,25 @@ export default function Header({
   onLogout,
   simulationMode,
   setSimulationMode,
+  onNavigateToLanding,
 }) {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-30 w-full border-b border-slate-800 bg-[#090d16]/95 backdrop-blur-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-        {/* Brand / Logo */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-8 h-8 rounded bg-slate-800 border border-slate-700 text-blue-400">
+        {/* Brand / Logo - Clickable to return to Overview */}
+        <div
+          onClick={onNavigateToLanding}
+          className="flex items-center gap-3 cursor-pointer group"
+          title="Click to return to Gestura Overview & Sign In"
+        >
+          <div className="flex items-center justify-center w-8 h-8 rounded bg-slate-800 border border-slate-700 text-blue-400 group-hover:border-blue-500/50 transition">
             <Activity className="w-4 h-4" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-sm font-semibold tracking-tight text-white font-mono uppercase">
+              <h1 className="text-sm font-semibold tracking-tight text-white font-mono uppercase group-hover:text-blue-300 transition">
                 Gestura
               </h1>
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 font-mono">
@@ -52,6 +57,13 @@ export default function Header({
 
         {/* Center Navigation Links */}
         <nav className="hidden lg:flex items-center gap-4 text-xs font-mono text-slate-400">
+          <button
+            onClick={onNavigateToLanding}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-800/60 border border-slate-700/60 text-slate-300 hover:text-white hover:border-slate-600 transition cursor-pointer"
+          >
+            <span>← Overview & Sign In</span>
+          </button>
+          <span className="text-slate-700">|</span>
           <button
             onClick={onOpenPrivacyModal}
             className="flex items-center gap-1.5 hover:text-slate-200 transition cursor-pointer"
