@@ -141,22 +141,22 @@ export default function ActivityModal({ activity, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-xl animate-fadeIn">
-      <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-lg glass-panel-active border border-indigo-500/40 shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-fadeIn">
+      <div className="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-xl bg-zinc-950 border border-zinc-800 shadow-2xl overflow-hidden text-white">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/60">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-900/80">
           <div className="flex items-center gap-2.5">
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md bg-zinc-800 text-zinc-200 border border-zinc-700">
               {activity.category}
             </span>
-            <span className="text-xs font-mono text-slate-400 flex items-center gap-1">
+            <span className="text-xs font-mono text-zinc-400 flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" /> {activity.duration}
             </span>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -169,35 +169,35 @@ export default function ActivityModal({ activity, onClose }) {
             <h3 className="text-2xl font-bold text-white tracking-tight">
               {activity.title}
             </h3>
-            <p className="text-sm text-slate-300 mt-1.5 leading-relaxed">
+            <p className="text-sm text-zinc-300 mt-1.5 leading-relaxed">
               {activity.subtitle}
             </p>
           </div>
 
           {/* Interactive Breathing Visualizer */}
           {activity.type === 'breathing' && (
-            <div className="flex flex-col items-center justify-center p-8 rounded-lg bg-slate-950/70 border border-indigo-500/20 relative overflow-hidden">
+            <div className="flex flex-col items-center justify-center p-8 rounded-xl bg-black border border-zinc-800 relative overflow-hidden">
               <div className="relative flex items-center justify-center w-52 h-52 mb-6">
                 {/* Outer Breathing Expanding Ring */}
                 <div
-                  className={`absolute inset-0 rounded-full border-2 border-indigo-400/50 transition-all duration-1000 ease-in-out ${
+                  className={`absolute inset-0 rounded-full border-2 border-emerald-500/50 transition-all duration-1000 ease-in-out ${
                     isRunning
                       ? breathPhase === 'Inhale'
-                        ? 'scale-110 bg-indigo-500/20 shadow-2xl shadow-indigo-500/40'
+                        ? 'scale-110 bg-emerald-500/10'
                         : breathPhase === 'Hold'
-                        ? 'scale-105 bg-blue-500/20 shadow-2xl shadow-blue-500/30'
-                        : 'scale-75 bg-indigo-500/5'
-                      : 'scale-90 bg-indigo-500/10'
+                        ? 'scale-105 bg-cyan-500/10'
+                        : 'scale-75 bg-emerald-500/5'
+                      : 'scale-90 bg-zinc-900'
                   }`}
                 />
 
                 {/* Inner Core */}
                 <div className="relative z-10 flex flex-col items-center justify-center text-center">
-                  <Wind className="w-6 h-6 text-indigo-400 mb-1" />
+                  <Wind className="w-6 h-6 text-emerald-400 mb-1" />
                   <span className="text-xl font-bold text-white tracking-wide">
                     {isRunning ? breathPhase : 'Ready'}
                   </span>
-                  <span className="text-3xl font-mono font-extrabold text-indigo-300 mt-0.5">
+                  <span className="text-3xl font-mono font-extrabold text-emerald-300 mt-0.5">
                     {isRunning ? breathCount : '4s'}
                   </span>
                 </div>
@@ -207,7 +207,7 @@ export default function ActivityModal({ activity, onClose }) {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setIsRunning(!isRunning)}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-600/30 transition cursor-pointer"
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold transition cursor-pointer shadow-sm"
                 >
                   {isRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                   <span>{isRunning ? 'Pause Cycle' : 'Start Breathing'}</span>
@@ -229,16 +229,16 @@ export default function ActivityModal({ activity, onClose }) {
           )}
 
           {/* Ambient Sound Audio Player Widget */}
-          <div className="flex items-center justify-between p-4 rounded-lg bg-slate-900/70 border border-slate-800">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-black border border-zinc-800">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded bg-indigo-500/15 text-indigo-400">
+              <div className="p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300">
                 <Volume2 className="w-5 h-5" />
               </div>
               <div>
                 <h5 className="text-xs font-semibold text-white">
                   Client-Synthesized 432Hz Calm Waves
                 </h5>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-zinc-400">
                   Pure sine harmonic audio generated in your browser
                 </p>
               </div>
@@ -246,10 +246,10 @@ export default function ActivityModal({ activity, onClose }) {
 
             <button
               onClick={toggleAmbientSound}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded text-xs font-medium transition cursor-pointer border ${
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition cursor-pointer border ${
                 isAudioPlaying
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
-                  : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                  : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700'
               }`}
             >
               {isAudioPlaying ? (
@@ -267,7 +267,7 @@ export default function ActivityModal({ activity, onClose }) {
           {/* Steps / Checklist if available */}
           {activity.steps && (
             <div>
-              <h5 className="text-xs font-mono uppercase tracking-wider text-slate-400 mb-3">
+              <h5 className="text-xs font-mono uppercase tracking-wider text-zinc-400 mb-3">
                 Action Steps:
               </h5>
               <div className="space-y-2">
@@ -280,14 +280,14 @@ export default function ActivityModal({ activity, onClose }) {
                       className={`flex items-start gap-3 p-3 rounded-lg border transition cursor-pointer ${
                         isDone
                           ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-200'
-                          : 'bg-slate-900/50 border-slate-800 text-slate-300 hover:bg-slate-850'
+                          : 'bg-zinc-900/60 border-zinc-800 text-zinc-300 hover:bg-zinc-900'
                       }`}
                     >
                       <div
-                        className={`w-5 h-5 mt-0.5 rounded-lg flex items-center justify-center border text-xs ${
+                        className={`w-5 h-5 mt-0.5 rounded flex items-center justify-center border text-xs ${
                           isDone
-                            ? 'bg-emerald-500 border-emerald-400 text-slate-950'
-                            : 'border-slate-600 bg-slate-800'
+                            ? 'bg-emerald-500 border-emerald-400 text-black'
+                            : 'border-zinc-600 bg-zinc-800'
                         }`}
                       >
                         {isDone && <Check className="w-3 h-3 stroke-[3]" />}
@@ -305,19 +305,19 @@ export default function ActivityModal({ activity, onClose }) {
           {/* Prompts for Journaling / Creative */}
           {activity.prompts && (
             <div>
-              <h5 className="text-xs font-mono uppercase tracking-wider text-slate-400 mb-3">
+              <h5 className="text-xs font-mono uppercase tracking-wider text-zinc-400 mb-3">
                 Reflection Prompts:
               </h5>
               <div className="space-y-2.5">
                 {activity.prompts.map((prompt, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between p-3.5 rounded-lg bg-slate-900/60 border border-slate-800 text-xs text-slate-200"
+                    className="flex items-center justify-between p-3.5 rounded-lg bg-zinc-900/60 border border-zinc-800 text-xs text-zinc-200"
                   >
                     <span>{prompt}</span>
                     <button
                       onClick={() => copyToClipboard(prompt, idx)}
-                      className="ml-3 p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                      className="ml-3 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition cursor-pointer"
                       title="Copy prompt"
                     >
                       {copiedIndex === idx ? (
@@ -334,15 +334,15 @@ export default function ActivityModal({ activity, onClose }) {
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800 bg-slate-900/80">
-          <span className="text-xs text-slate-400">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-800 bg-zinc-900/80">
+          <span className="text-xs text-zinc-400">
             {completedSteps.length > 0
               ? `${completedSteps.length} step(s) checked`
               : 'Take your time and focus on your breath'}
           </span>
           <button
             onClick={onClose}
-            className="px-5 py-2 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold cursor-pointer shadow-md"
+            className="px-5 py-2 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-semibold cursor-pointer shadow-sm transition"
           >
             Done & Close
           </button>

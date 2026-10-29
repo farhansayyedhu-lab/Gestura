@@ -200,27 +200,27 @@ export default function WebcamViewer({
           } ${!isStreaming || isCurtainActive ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
         />
 
-        {/* Real-time Canvas Overlay */}
+        {/* Real-time Canvas Overlay with object-cover for 1:1 coordinate alignment */}
         <canvas
           ref={canvasRef}
-          className={`absolute inset-0 w-full h-full pointer-events-none z-10 ${
+          className={`absolute inset-0 w-full h-full object-cover pointer-events-none z-10 ${
             isMirrored ? 'scale-x-[-1]' : ''
           } ${!isStreaming || isCurtainActive ? 'hidden' : 'block'}`}
         />
 
         {/* Privacy Curtain Overlay */}
         {isCurtainActive && isStreaming && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/95 p-6 text-center">
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-zinc-950/95 p-6 text-center">
             <div className="w-12 h-12 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mb-3 text-amber-400">
               <EyeOff className="w-6 h-6" />
             </div>
-            <h4 className="text-sm font-semibold text-slate-100 mb-1">Privacy Blind Active</h4>
-            <p className="text-xs text-slate-400 max-w-sm mb-4">
+            <h4 className="text-sm font-semibold text-zinc-100 mb-1">Privacy Blind Active</h4>
+            <p className="text-xs text-zinc-400 max-w-sm mb-4">
               Local camera preview obscured on screen. Processing remains local.
             </p>
             <button
               onClick={() => setIsCurtainActive(false)}
-              className="px-3 py-1.5 text-xs font-medium rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 cursor-pointer"
+              className="px-3 py-1.5 text-xs font-medium rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 cursor-pointer"
             >
               Resume Live Preview
             </button>
@@ -229,19 +229,19 @@ export default function WebcamViewer({
 
         {/* Standby / Initial State */}
         {!isStreaming && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center bg-slate-950">
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center bg-black">
             {permissionState === 'denied' ? (
               <div className="max-w-md flex flex-col items-center">
                 <div className="w-12 h-12 rounded-lg bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mb-3 text-rose-400">
                   <AlertTriangle className="w-6 h-6" />
                 </div>
                 <h3 className="text-base font-semibold text-white mb-2">Camera Permission Denied</h3>
-                <p className="text-xs text-slate-400 leading-relaxed mb-4">
+                <p className="text-xs text-zinc-400 leading-relaxed mb-4">
                   {errorMessage || 'Camera access was blocked in browser settings. Please permit camera access to run local expression analysis.'}
                 </p>
                 <button
                   onClick={() => onStartWebcam()}
-                  className="flex items-center gap-2 px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium transition cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-zinc-950 text-xs font-semibold hover:bg-zinc-200 transition cursor-pointer"
                 >
                   <RefreshCw className="w-4 h-4" />
                   Retry Access
@@ -250,22 +250,22 @@ export default function WebcamViewer({
             ) : (
               <div className="max-w-md flex flex-col items-center">
                 <div className="relative mb-4">
-                  <div className="w-14 h-14 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300">
-                    <Camera className="w-7 h-7 text-blue-400" />
+                  <div className="w-14 h-14 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300">
+                    <Camera className="w-7 h-7 text-zinc-100" />
                   </div>
-                  <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded bg-slate-800 border border-slate-700 flex items-center justify-center text-emerald-400">
+                  <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-md bg-zinc-900 border border-zinc-800 flex items-center justify-center text-emerald-400">
                     <Lock className="w-3 h-3" />
                   </span>
                 </div>
                 <h3 className="text-base font-semibold text-white mb-1.5">
                   Webcam Optical Stream
                 </h3>
-                <p className="text-xs text-slate-400 leading-relaxed mb-5 max-w-sm">
+                <p className="text-xs text-zinc-400 leading-relaxed mb-5 max-w-sm">
                   Client-side expression and gesture recognition. Frames are processed locally in memory using WebAssembly.
                 </p>
                 <button
                   onClick={() => onStartWebcam()}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition cursor-pointer"
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-semibold shadow-sm transition cursor-pointer"
                 >
                   <Camera className="w-4 h-4" />
                   <span>Start Camera Feed</span>
@@ -278,25 +278,25 @@ export default function WebcamViewer({
         {/* Live HUD Floating Indicators */}
         {isStreaming && !isCurtainActive && (
           <div className="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-between z-20 pointer-events-none gap-2">
-            <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-slate-900/90 border border-slate-800 text-xs text-slate-200">
+            <div className="flex items-center gap-2 px-2.5 py-1 rounded-md bg-black/90 border border-zinc-800 text-xs text-zinc-200 backdrop-blur-sm">
               <span
-                className={`w-2 h-2 rounded-sm ${
-                  faceDetected ? 'bg-emerald-400' : 'bg-amber-400'
+                className={`w-2 h-2 rounded-full ${
+                  faceDetected ? 'bg-emerald-400 shadow-sm shadow-emerald-500/50' : 'bg-amber-400'
                 }`}
               />
               <span className="font-mono text-[11px]">
-                {faceDetected ? 'FACE TRACKED' : 'SCANNING FOR FACE...'}
+                {faceDetected ? 'FACE TRACKED' : 'NO FACE DETECTED (ALIGN IN FRAME)'}
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-900/90 border border-slate-800 text-xs text-slate-200">
-              <Hand className={`w-3.5 h-3.5 ${handsDetectedCount > 0 ? 'text-emerald-400' : 'text-slate-500'}`} />
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-black/90 border border-zinc-800 text-xs text-zinc-200 backdrop-blur-sm">
+              <Hand className={`w-3.5 h-3.5 ${detectedGesture !== 'none' ? 'text-emerald-400' : 'text-zinc-500'}`} />
               <span className="font-mono text-[11px]">
                 {detectedGesture !== 'none'
                   ? `GESTURE: ${detectedGesture.toUpperCase().replace('_', ' ')}`
                   : handsDetectedCount > 0
-                  ? `HAND: ${handsDetectedCount}`
-                  : 'HAND: NONE'}
+                  ? `HAND VISIBLE`
+                  : 'GESTURE: NONE'}
               </span>
             </div>
           </div>

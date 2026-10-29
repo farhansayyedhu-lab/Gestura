@@ -11,28 +11,28 @@ const isDev = process.env.NODE_ENV !== 'production';
 
 const devCSP = [
   "default-src 'self'",
-  // Dev: allow unsafe-inline + unsafe-eval for Vite HMR and React hot reload
-  "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.jsdelivr.net https://accounts.google.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
   "font-src 'self' data: https://fonts.gstatic.com",
-  // Dev: must allow Vite HMR websocket and all CDN connections
-  "connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://cdn.jsdelivr.net https://storage.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com",
-  "img-src 'self' data: blob:",
+  "connect-src 'self' ws://localhost:* wss://localhost:* http://localhost:* https://cdn.jsdelivr.net https://storage.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com https://generativelanguage.googleapis.com https://accounts.google.com",
+  "img-src 'self' data: blob: https://*.googleusercontent.com",
   "media-src 'self' blob:",
   "worker-src 'self' blob:",
+  "frame-src 'self' https://accounts.google.com",
   "base-uri 'self'",
   "form-action 'self'",
 ].join('; ');
 
 const prodCSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net https://accounts.google.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "connect-src 'self' https://cdn.jsdelivr.net https://storage.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com",
-  "img-src 'self' data: blob:",
+  "connect-src 'self' https://cdn.jsdelivr.net https://storage.googleapis.com https://fonts.googleapis.com https://fonts.gstatic.com https://generativelanguage.googleapis.com https://accounts.google.com",
+  "img-src 'self' data: blob: https://*.googleusercontent.com",
   "media-src 'self' blob:",
   "worker-src 'self' blob:",
+  "frame-src 'self' https://accounts.google.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

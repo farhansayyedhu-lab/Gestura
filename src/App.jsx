@@ -12,8 +12,9 @@ import LandingPage from './components/LandingPage';
 import { useMoodDetection } from './hooks/useMoodDetection';
 import { ACTIVITIES } from './data/activities';
 import { ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { getCurrentSession, signOut } from './lib/auth';
 
-// ─── Dashboard (post-login view) ───────────────────────────────────────────────
+// ─── Dashboard (post-login protected view) ─────────────────────────────────────
 function Dashboard({ user, onLogout, onOpenPrivacyModal, onOpenTermsModal, onOpenAuthModal, onNavigateToLanding }) {
   const {
     videoRef,
@@ -87,10 +88,10 @@ function Dashboard({ user, onLogout, onOpenPrivacyModal, onOpenTermsModal, onOpe
   }, [detectedGesture, currentMood]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#090d16] text-slate-100 selection:bg-blue-600/30 selection:text-blue-200">
+    <div className="min-h-screen flex flex-col bg-black text-white selection:bg-zinc-800 selection:text-white">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 flex items-center gap-2 px-3.5 py-2.5 rounded bg-slate-900 border border-slate-700 text-slate-200 text-xs shadow-lg animate-fadeIn font-mono">
+        <div className="fixed top-20 right-6 z-50 flex items-center gap-2 px-3.5 py-2.5 rounded-lg bg-zinc-900 border border-zinc-700 text-white text-xs shadow-xl animate-fadeIn font-mono">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -110,9 +111,9 @@ function Dashboard({ user, onLogout, onOpenPrivacyModal, onOpenTermsModal, onOpe
         onNavigateToLanding={onNavigateToLanding}
       />
 
-      {/* Security Banner */}
-      <div className="w-full bg-slate-950/80 border-b border-slate-800 px-4 py-2 text-center text-xs text-slate-300 flex flex-wrap items-center justify-center gap-3 font-mono">
-        <div className="flex items-center gap-1.5">
+      {/* Security Architecture Banner */}
+      <div className="w-full bg-zinc-950 border-b border-zinc-800/80 px-4 py-2.5 text-center text-xs text-zinc-300 flex flex-wrap items-center justify-center gap-3 font-mono">
+        <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>
             Security Architecture: Client-Side WebAssembly isolation. Zero remote video transmission or cloud biometric storage.
@@ -120,7 +121,7 @@ function Dashboard({ user, onLogout, onOpenPrivacyModal, onOpenTermsModal, onOpe
         </div>
       </div>
 
-      {/* Main Dashboard */}
+      {/* Main Dashboard Grid */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Webcam Viewer */}
@@ -179,7 +180,7 @@ function Dashboard({ user, onLogout, onOpenPrivacyModal, onOpenTermsModal, onOpe
         </section>
       </main>
 
-      {/* Halftone Footer */}
+      {/* Halftone Wordmark Footer */}
       <HalftoneWordmarkFooter
         wordmark="gestura"
         label="Gestura Systems"
@@ -200,7 +201,7 @@ function Dashboard({ user, onLogout, onOpenPrivacyModal, onOpenTermsModal, onOpe
             links: [
               { label: 'Client-Side Isolation' },
               { label: 'Zero Cloud Storage' },
-              { label: 'SHA-256 Hashing' },
+              { label: 'PBKDF2 SHA-256' },
             ],
           },
           {
@@ -220,19 +221,10 @@ function Dashboard({ user, onLogout, onOpenPrivacyModal, onOpenTermsModal, onOpe
   );
 }
 
-// ─── Root App — Auth-Gated Router ──────────────────────────────────────────────
+// ─── Root App — Protected Router ──────────────────────────────────────────────
 export default function App() {
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('gestura_user');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
-
-  // Controls which page is visible: Always defaults to 'landing' so user sees sign-in & details first
-  const [view, setView] = useState('landing');
+  const [user, setUser] = useState(() => getCurrentSession());
+  const [view, setView] = useState(() => (getCurrentSession() ? 'dashboard' : 'landing'));
   const [opacity, setOpacity] = useState(1);
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -242,6 +234,11 @@ export default function App() {
 
   // Fade transition helper
   const switchView = (nextView) => {
+    // Protected route check: Can only access dashboard if user is authenticated
+    if (nextView === 'dashboard' && !user) {
+      nextView = 'landing';
+    }
+
     setOpacity(0);
     setTimeout(() => {
       setView(nextView);
@@ -252,13 +249,12 @@ export default function App() {
 
   const handleLoginSuccess = (userData) => {
     setUser(userData);
-    try { localStorage.setItem('gestura_user', JSON.stringify(userData)); } catch {}
     switchView('dashboard');
   };
 
   const handleLogout = () => {
+    signOut();
     setUser(null);
-    try { localStorage.removeItem('gestura_user'); } catch {}
     switchView('landing');
   };
 
@@ -268,8 +264,8 @@ export default function App() {
   };
 
   return (
-    <div style={{ opacity, transition: 'opacity 0.24s ease', minHeight: '100vh' }}>
-      {view === 'landing' ? (
+    <div style={{ opacity, transition: 'opacity 0.24s ease', minHeight: '100vh', backgroundColor: '#000000' }}>
+      {view === 'landing' || !user ? (
         <LandingPage
           onLoginSuccess={handleLoginSuccess}
           currentUser={user}

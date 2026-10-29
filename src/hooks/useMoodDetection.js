@@ -421,16 +421,21 @@ export function useMoodDetection() {
 
               // Draw
               if (overlayMode !== 'off') {
-                drawMediaPipeFace(ctx, landmarks, canvas.width, canvas.height, overlayMode, currentMood);
+                drawMediaPipeFace(ctx, landmarks, canvas.width, canvas.height, overlayMode, currentMood, faceBoxRef);
               }
+            } else {
+              // MediaPipe ran and found 0 faces in frame
+              mediaPipeHandledFace = true;
+              setFaceDetected(false);
+              faceBoxRef.current.active = false;
             }
           } catch (e) {
             console.warn('MediaPipe frame error:', e);
           }
         }
 
-        // B. Optical Fast-Tracking Engine (Always runs if MediaPipe hasn't fired or is compiling)
-        if (!mediaPipeHandledFace) {
+        // B. Optical Fast-Tracking Engine (Only if MediaPipe is actively downloading/initializing)
+        if (!mediaPipeHandledFace && !faceLandmarkerRef.current) {
           const opticalResult = runOpticalFaceDetection(
             video,
             procCanvasRef.current,
@@ -443,7 +448,6 @@ export function useMoodDetection() {
             setFaceDetected(true);
             faceBoxRef.current = opticalResult.box;
 
-            // Update real-time mood from optical facial geometry
             if (!simulationMode) {
               const optProbs = opticalResult.probabilities;
               const smoothed = { ...smoothedProbsRef.current };
@@ -462,13 +466,16 @@ export function useMoodDetection() {
               setConfidence(Number(Math.min(0.95, maxOpt + 0.18).toFixed(2)));
             }
 
-            // Draw biometric HUD overlay
             if (overlayMode !== 'off') {
               drawOpticalFaceHUD(ctx, opticalResult.box, canvas.width, canvas.height, currentMood);
             }
           } else {
             setFaceDetected(false);
+            faceBoxRef.current.active = false;
           }
+        } else if (!mediaPipeHandledFace) {
+          setFaceDetected(false);
+          faceBoxRef.current.active = false;
         }
 
         // C. Hand Gestures
@@ -771,58 +778,114 @@ function drawOpticalFaceHUD(ctx, box, width, height, mood) {
   ctx.restore();
 }
 
-function drawMediaPipeFace(ctx, landmarks, width, height, overlayMode, mood) {
-  const color = getMoodColor(mood);
+function drawMediaPipeFace(ctx, landmarks, width, height, overlayMode, mood, faceBoxRef) {
+  if (!landmarks || landmarks.length === 0) return;
 
-  let minX = width;
-  let maxX = 0;
-  let minY = height;
-  let maxY = 0;
+  // Key facial anchor points from 478 MediaPipe landmarks:
+  // 10: Forehead top
+  // 152: Chin bottom
+  // 234: Left cheek / ear boundary
+  // 454: Right cheek / ear boundary
+  // 1: Nose tip
+  const forehead = landmarks[10];
+  const chin = landmarks[152];
+  const leftCheek = landmarks[234];
+  const rightCheek = landmarks[454];
 
-  for (let i = 0; i < landmarks.length; i++) {
-    const px = landmarks[i].x * width;
-    const py = landmarks[i].y * height;
-    if (px < minX) minX = px;
-    if (px > maxX) maxX = px;
-    if (py < minY) minY = py;
-    if (py > maxY) maxY = py;
+  if (!forehead || !chin || !leftCheek || !rightCheek) return;
+
+  const cx = ((leftCheek.x + rightCheek.x) / 2) * width;
+  const cy = ((forehead.y + chin.y) / 2) * height;
+
+  const faceW = Math.abs(rightCheek.x - leftCheek.x) * width;
+  const faceH = Math.abs(chin.y - forehead.y) * height;
+
+  // A small, neat square tracking box sized to accurately fit the face
+  const rawSize = Math.max(faceW * 1.18, faceH * 1.08);
+
+  const targetX = cx - rawSize / 2;
+  const targetY = cy - rawSize / 2;
+  const targetSize = rawSize;
+
+  // Smooth temporal tracking box with exponential moving average to prevent jitter
+  if (faceBoxRef && faceBoxRef.current && faceBoxRef.current.active) {
+    const alpha = 0.32;
+    faceBoxRef.current.x += (targetX - faceBoxRef.current.x) * alpha;
+    faceBoxRef.current.y += (targetY - faceBoxRef.current.y) * alpha;
+    faceBoxRef.current.size += (targetSize - faceBoxRef.current.size) * alpha;
+  } else if (faceBoxRef) {
+    faceBoxRef.current = {
+      x: targetX,
+      y: targetY,
+      size: targetSize,
+      active: true,
+    };
   }
 
-  const padX = (maxX - minX) * 0.12;
-  const padY = (maxY - minY) * 0.12;
-  minX = Math.max(0, minX - padX);
-  maxX = Math.min(width, maxX + padX);
-  minY = Math.max(0, minY - padY);
-  maxY = Math.min(height, maxY + padY);
+  const bx = faceBoxRef?.current?.x ?? targetX;
+  const by = faceBoxRef?.current?.y ?? targetY;
+  const bSize = faceBoxRef?.current?.size ?? targetSize;
+
+  const moodColor = getMoodColor(mood);
 
   ctx.save();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2.5;
-  const corner = 22;
 
-  // Brackets
+  // Draw clean, neat corner brackets around face (pure white, crisp 1.75px stroke)
+  const cornerLen = Math.min(18, bSize * 0.16);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  // Top-left
   ctx.beginPath();
-  ctx.moveTo(minX, minY + corner); ctx.lineTo(minX, minY); ctx.lineTo(minX + corner, minY);
-  ctx.moveTo(maxX - corner, minY); ctx.lineTo(maxX, minY); ctx.lineTo(maxX, minY + corner);
-  ctx.moveTo(minX, maxY - corner); ctx.lineTo(minX, maxY); ctx.lineTo(minX + corner, maxY);
-  ctx.moveTo(maxX - corner, maxY); ctx.lineTo(maxX, maxY); ctx.lineTo(maxX, maxY - corner);
+  ctx.moveTo(bx, by + cornerLen);
+  ctx.lineTo(bx, by);
+  ctx.lineTo(bx + cornerLen, by);
   ctx.stroke();
 
-  // Tag
-  ctx.fillStyle = 'rgba(8, 13, 26, 0.9)';
-  ctx.fillRect(minX, Math.max(10, minY - 24), 210, 20);
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(minX, Math.max(10, minY - 24), 210, 20);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 10px monospace';
-  ctx.fillText(`478-PT MESH: ${mood.toUpperCase()} (ACTIVE)`, minX + 6, Math.max(10, minY - 24) + 14);
+  // Top-right
+  ctx.beginPath();
+  ctx.moveTo(bx + bSize - cornerLen, by);
+  ctx.lineTo(bx + bSize, by);
+  ctx.lineTo(bx + bSize, by + cornerLen);
+  ctx.stroke();
 
-  // Features
+  // Bottom-left
+  ctx.beginPath();
+  ctx.moveTo(bx, by + bSize - cornerLen);
+  ctx.lineTo(bx, by + bSize);
+  ctx.lineTo(bx + cornerLen, by + bSize);
+  ctx.stroke();
+
+  // Bottom-right
+  ctx.beginPath();
+  ctx.moveTo(bx + bSize - cornerLen, by + bSize);
+  ctx.lineTo(bx + bSize, by + bSize);
+  ctx.lineTo(bx + bSize, by + bSize - cornerLen);
+  ctx.stroke();
+
+  // Minimalist black badge with white text
+  const tagH = 18;
+  const tagW = 90;
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+  ctx.fillRect(bx, by - tagH - 4, tagW, tagH);
+  ctx.strokeStyle = '#27272a';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(bx, by - tagH - 4, tagW, tagH);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '600 9px monospace';
+  ctx.fillText('FACE TRACKED', bx + 6, by - 8);
+
+  // Restrained facial topology contours if overlay is enabled
   if (overlayMode === 'contours' || overlayMode === 'mesh') {
-    drawIndices(ctx, landmarks, width, height, [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 308, 61], color, 2);
-    drawIndices(ctx, landmarks, width, height, [33, 160, 158, 133, 153, 144, 33], '#38bdf8', 1.5);
-    drawIndices(ctx, landmarks, width, height, [263, 387, 385, 362, 380, 373, 263], '#38bdf8', 1.5);
+    // Lips
+    drawIndices(ctx, landmarks, width, height, [61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 308, 61], 'rgba(255, 255, 255, 0.4)', 1);
+    // Left eye
+    drawIndices(ctx, landmarks, width, height, [33, 160, 158, 133, 153, 144, 33], 'rgba(56, 189, 248, 0.6)', 1.2);
+    // Right eye
+    drawIndices(ctx, landmarks, width, height, [263, 387, 385, 362, 380, 373, 263], 'rgba(56, 189, 248, 0.6)', 1.2);
   }
 
   ctx.restore();
@@ -830,7 +893,7 @@ function drawMediaPipeFace(ctx, landmarks, width, height, overlayMode, mood) {
 
 function drawHandSkeleton(ctx, landmarks, width, height, detectedGesture) {
   ctx.save();
-  ctx.strokeStyle = '#34d399';
+  ctx.strokeStyle = '#10b981';
   ctx.lineWidth = 2;
 
   const pairs = [
@@ -850,21 +913,26 @@ function drawHandSkeleton(ctx, landmarks, width, height, detectedGesture) {
     }
   });
 
+  // Joints in clean white (no purple)
   landmarks.forEach((pt) => {
-    ctx.fillStyle = '#a78bfa';
+    ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(pt.x * width, pt.y * height, 3, 0, Math.PI * 2);
+    ctx.arc(pt.x * width, pt.y * height, 2.5, 0, Math.PI * 2);
     ctx.fill();
   });
 
   if (detectedGesture !== 'none' && landmarks[0]) {
     const wx = landmarks[0].x * width;
     const wy = landmarks[0].y * height;
-    ctx.fillStyle = '#10b981';
-    ctx.fillRect(wx - 70, wy + 14, 140, 22);
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+    ctx.fillRect(wx - 65, wy + 14, 130, 22);
+    ctx.strokeStyle = '#27272a';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(wx - 65, wy + 14, 130, 22);
+
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 11px monospace';
-    ctx.fillText(detectedGesture.toUpperCase().replace('_', ' '), wx - 60, wy + 29);
+    ctx.font = 'bold 10px monospace';
+    ctx.fillText(detectedGesture.toUpperCase().replace('_', ' '), wx - 55, wy + 29);
   }
 
   ctx.restore();
@@ -885,11 +953,11 @@ function drawIndices(ctx, landmarks, width, height, indices, color, lw) {
 
 function getMoodColor(mood) {
   switch (mood) {
-    case MOODS.HAPPY: return '#34d399';
-    case MOODS.STRESSED: return '#f43f5e';
-    case MOODS.TIRED: return '#fbbf24';
-    case MOODS.SAD: return '#818cf8';
-    case MOODS.SURPRISED: return '#f472b6';
-    default: return '#38bdf8';
+    case MOODS.HAPPY: return '#10b981'; // Emerald
+    case MOODS.STRESSED: return '#ef4444'; // Red
+    case MOODS.TIRED: return '#f59e0b'; // Amber
+    case MOODS.SAD: return '#3b82f6'; // Blue
+    case MOODS.SURPRISED: return '#06b6d4'; // Cyan
+    default: return '#ffffff'; // White/Neutral
   }
 }
