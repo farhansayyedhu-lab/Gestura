@@ -5,9 +5,12 @@ import MoodIndicator from './components/MoodIndicator';
 import RecommendationGrid from './components/RecommendationGrid';
 import ActivityModal from './components/ActivityModal';
 import PrivacyModal from './components/PrivacyModal';
+import AuthModal from './components/AuthModal';
+import KineticGrid from './components/ui/kinetic-grid';
+import HalftoneWordmarkFooter from './components/ui/halftone-wordmark-footer';
 import { useMoodDetection } from './hooks/useMoodDetection';
 import { ACTIVITIES } from './data/activities';
-import { ShieldCheck, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Sparkles, UserCheck, Flame, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
   const {
@@ -32,17 +35,63 @@ export default function App() {
     triggerGesture,
     simulationMode,
     setSimulationMode,
+    // Real AI Vision states
+    isModelLoading,
+    isModelReady,
+    modelStatus,
+    modelError,
+    faceDetected,
+    handsDetectedCount,
+    topBlendshapes,
+    overlayMode,
+    setOverlayMode,
   } = useMoodDetection();
+
+  // Authentication State
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('gestura_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState('signin');
 
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isPrivacyModalOpen, setIsPrivacyModalOpen] = useState(false);
   const [shuffledActivities, setShuffledActivities] = useState(ACTIVITIES);
   const [toastMessage, setToastMessage] = useState(null);
+  const [kineticActive, setKineticActive] = useState(false);
 
   // Trigger toast alert
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  // Auth Handlers
+  const handleLoginSuccess = (userData) => {
+    setUser(userData);
+    try {
+      localStorage.setItem('gestura_user', JSON.stringify(userData));
+    } catch (e) {}
+    showToast(`🎉 Welcome back, ${userData.name}! Successfully signed in.`);
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    try {
+      localStorage.removeItem('gestura_user');
+    } catch (e) {}
+    showToast('Signed out of Gestura account.');
+  };
+
+  const openAuthModal = (mode = 'signin') => {
+    setAuthModalMode(mode);
+    setIsAuthModalOpen(true);
   };
 
   // Shuffle activities
@@ -54,7 +103,6 @@ export default function App() {
   // Gesture reactions
   useEffect(() => {
     if (detectedGesture === 'thumbs_up') {
-      // Find the first activity matching current mood
       const topMatch = shuffledActivities.find((act) => act.mood === currentMood);
       if (topMatch && !selectedActivity) {
         setSelectedActivity(topMatch);
@@ -72,39 +120,56 @@ export default function App() {
       showToast('Camera feed disconnected.');
     } else {
       startWebcam(selectedDeviceId);
+      showToast('Camera feed starting with real-time biometric lock...');
     }
   };
 
-  return (
-    <div className="min-h-screen flex flex-col bg-[#080d1a] text-slate-100 selection:bg-indigo-500/30 selection:text-indigo-200">
+  const content = (
+    <div className="min-h-screen flex flex-col text-slate-100 selection:bg-indigo-500/30 selection:text-indigo-200">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-indigo-950/90 border border-indigo-500/50 text-indigo-200 text-xs shadow-2xl backdrop-blur-md animate-fadeIn">
-          <Sparkles className="w-4 h-4 text-indigo-400" />
+        <div className="fixed top-24 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-indigo-950/95 border border-indigo-500/50 text-indigo-200 text-xs shadow-2xl backdrop-blur-md animate-fadeIn">
+          <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* Header */}
+      {/* Header with full Auth & Kinetic Controls */}
       <Header
         isStreaming={isStreaming}
         onToggleWebcam={handleToggleWebcam}
         onOpenPrivacyModal={() => setIsPrivacyModalOpen(true)}
+        onOpenAuthModal={openAuthModal}
+        user={user}
+        onLogout={handleLogout}
         simulationMode={simulationMode}
         setSimulationMode={setSimulationMode}
+        kineticActive={kineticActive}
+        setKineticActive={setKineticActive}
       />
 
-      {/* Top Banner Notice (Requirement 2: Privacy notice) */}
-      <div className="w-full bg-indigo-950/40 border-b border-indigo-500/10 px-4 py-2 text-center text-xs text-indigo-200/90 flex items-center justify-center gap-2">
-        <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-        <span>
-          <strong>Privacy Guaranteed:</strong> All facial analysis & gesture recognition runs exclusively client-side in your browser. Video is never recorded, stored, or sent to a server.
-        </span>
+      {/* Top Banner Notice */}
+      <div className="w-full bg-indigo-950/50 border-b border-indigo-500/20 px-4 py-2 text-center text-xs text-indigo-200/90 flex flex-wrap items-center justify-center gap-3">
+        <div className="flex items-center gap-1.5">
+          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>
+            <strong>100% Client-Side Privacy:</strong> Real-time biometric face detection runs in WebAssembly inside your browser. No video frames are ever uploaded or stored.
+          </span>
+        </div>
+
+        {!user && (
+          <button
+            onClick={() => openAuthModal('signin')}
+            className="text-[11px] font-semibold text-white bg-indigo-600/80 hover:bg-indigo-600 px-2.5 py-0.5 rounded-full border border-indigo-400/40 transition cursor-pointer"
+          >
+            Sign in to track mood streaks →
+          </button>
+        )}
       </div>
 
       {/* Main Dashboard Layout */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8">
-        {/* Top Section: Split between Camera Viewer and Live Mood Status Panel */}
+        {/* Top Section: Camera Viewer & Live Mood Status Panel */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column (7 cols): Webcam Viewer */}
           <div className="lg:col-span-7 flex flex-col gap-4">
@@ -124,6 +189,14 @@ export default function App() {
               fps={fps}
               detectedGesture={detectedGesture}
               currentMood={currentMood}
+              isModelLoading={isModelLoading}
+              isModelReady={isModelReady}
+              modelStatus={modelStatus}
+              modelError={modelError}
+              faceDetected={faceDetected}
+              handsDetectedCount={handsDetectedCount}
+              overlayMode={overlayMode}
+              setOverlayMode={setOverlayMode}
             />
           </div>
 
@@ -134,6 +207,8 @@ export default function App() {
               confidence={confidence}
               probabilities={probabilities}
               detectedGesture={detectedGesture}
+              topBlendshapes={topBlendshapes}
+              faceDetected={faceDetected}
               simulationMode={simulationMode}
               onSelectSimulatedMood={setSimulatedMood}
               onTriggerGesture={triggerGesture}
@@ -152,18 +227,40 @@ export default function App() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="w-full border-t border-slate-800/80 bg-slate-950/60 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-indigo-500"></span>
-            <span>Gestura AI Vision System • Step 1 Architecture Active</span>
-          </div>
-          <div>
-            Built with React 19, Tailwind CSS & HTML5 MediaStream API
-          </div>
-        </div>
-      </footer>
+      {/* Premium Halftone Wordmark Footer */}
+      <HalftoneWordmarkFooter
+        wordmark="gestura"
+        label="Gestura Vision Lab"
+        meta="©2026 · Client-Side AI Ecosystem"
+        height="480px"
+        preset="night"
+        columns={[
+          {
+            title: 'Vision AI',
+            links: [
+              { label: 'Face Mesh 478' },
+              { label: 'Hand Gestures' },
+              { label: '52 Blendshapes' },
+            ],
+          },
+          {
+            title: 'Privacy',
+            links: [
+              { label: 'Local WebAssembly' },
+              { label: 'Zero Cloud Storage' },
+              { label: 'Biometrics Policy' },
+            ],
+          },
+          {
+            title: 'Account',
+            links: [
+              { label: user ? user.email : 'Sign In with Google' },
+              { label: 'Mood History' },
+              { label: 'Preferences' },
+            ],
+          },
+        ]}
+      />
 
       {/* Interactive Activity Experience Modal */}
       <ActivityModal
@@ -176,6 +273,20 @@ export default function App() {
         isOpen={isPrivacyModalOpen}
         onClose={() => setIsPrivacyModalOpen(false)}
       />
+
+      {/* Authentication Modal with Google Login */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialMode={authModalMode}
+        onLoginSuccess={handleLoginSuccess}
+      />
     </div>
   );
+
+  if (kineticActive) {
+    return <KineticGrid globalColor="default">{content}</KineticGrid>;
+  }
+
+  return <div className="bg-[#080d1a] min-h-screen">{content}</div>;
 }
