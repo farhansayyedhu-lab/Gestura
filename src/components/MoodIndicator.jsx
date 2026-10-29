@@ -1,12 +1,24 @@
 import React from 'react';
 import { MOODS, MOOD_DETAILS } from '../data/activities';
-import { Sparkles, Activity, Check, ThumbsUp, Hand, HelpCircle } from 'lucide-react';
+import {
+  Sparkles,
+  Activity,
+  Check,
+  ThumbsUp,
+  Hand,
+  HelpCircle,
+  Cpu,
+  Smile,
+  Zap,
+} from 'lucide-react';
 
 export default function MoodIndicator({
   currentMood,
   confidence,
   probabilities,
   detectedGesture,
+  topBlendshapes = [],
+  faceDetected = false,
   simulationMode,
   onSelectSimulatedMood,
   onTriggerGesture,
@@ -14,9 +26,12 @@ export default function MoodIndicator({
   const currentMoodInfo = MOOD_DETAILS[currentMood] || MOOD_DETAILS[MOODS.NEUTRAL];
 
   const gestureLabels = {
-    none: { label: 'Ready (Show Hand)', icon: Hand, hint: 'Wave palm or thumbs up' },
+    none: { label: 'Listening for Gestures', icon: Hand, hint: 'Wave palm or thumbs up to camera' },
     thumbs_up: { label: 'Thumbs Up Detected', icon: ThumbsUp, hint: 'Auto-launching top recommendation!' },
     open_palm: { label: 'Open Palm Detected', icon: Hand, hint: 'Shuffling activity recommendations...' },
+    peace: { label: 'Victory / Peace Sign', icon: Hand, hint: 'Zen mode activated' },
+    fist: { label: 'Closed Fist Detected', icon: Hand, hint: 'Decompression pause' },
+    pointing_up: { label: 'Pointing Up Detected', icon: Hand, hint: 'Focusing recommendation' },
   };
 
   const activeGesture = gestureLabels[detectedGesture] || gestureLabels.none;
@@ -24,17 +39,21 @@ export default function MoodIndicator({
   return (
     <div className="flex flex-col gap-5">
       {/* Primary Mood Status Card */}
-      <div className={`p-6 rounded-3xl glass-panel relative overflow-hidden transition-all duration-300 border ${
-        currentMood === MOODS.HAPPY
-          ? 'border-emerald-500/30 shadow-lg shadow-emerald-500/10'
-          : currentMood === MOODS.STRESSED
-          ? 'border-rose-500/30 shadow-lg shadow-rose-500/10'
-          : currentMood === MOODS.TIRED
-          ? 'border-amber-500/30 shadow-lg shadow-amber-500/10'
-          : currentMood === MOODS.SAD
-          ? 'border-indigo-500/30 shadow-lg shadow-indigo-500/10'
-          : 'border-cyan-500/30 shadow-lg shadow-cyan-500/10'
-      }`}>
+      <div
+        className={`p-6 rounded-3xl glass-panel relative overflow-hidden transition-all duration-300 border ${
+          currentMood === MOODS.HAPPY
+            ? 'border-emerald-500/30 shadow-lg shadow-emerald-500/10'
+            : currentMood === MOODS.STRESSED
+            ? 'border-rose-500/30 shadow-lg shadow-rose-500/10'
+            : currentMood === MOODS.TIRED
+            ? 'border-amber-500/30 shadow-lg shadow-amber-500/10'
+            : currentMood === MOODS.SAD
+            ? 'border-indigo-500/30 shadow-lg shadow-indigo-500/10'
+            : currentMood === MOODS.SURPRISED
+            ? 'border-pink-500/30 shadow-lg shadow-pink-500/10'
+            : 'border-cyan-500/30 shadow-lg shadow-cyan-500/10'
+        }`}
+      >
         {/* Glow ambient background aura */}
         <div
           className={`absolute -top-12 -right-12 w-44 h-44 rounded-full blur-3xl opacity-20 pointer-events-none ${
@@ -46,6 +65,8 @@ export default function MoodIndicator({
               ? 'bg-amber-400'
               : currentMood === MOODS.SAD
               ? 'bg-indigo-500'
+              : currentMood === MOODS.SURPRISED
+              ? 'bg-pink-400'
               : 'bg-cyan-400'
           }`}
         />
@@ -54,7 +75,7 @@ export default function MoodIndicator({
         <div className="flex items-center justify-between mb-4">
           <span className="text-xs font-mono font-semibold tracking-wider text-slate-400 uppercase flex items-center gap-1.5">
             <Activity className="w-3.5 h-3.5 text-indigo-400" />
-            Real-Time State
+            MediaPipe Real-Time State
           </span>
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-slate-800/90 text-slate-300 border border-slate-700">
@@ -65,7 +86,7 @@ export default function MoodIndicator({
 
         {/* Mood Badge & Emoji */}
         <div className="flex items-center gap-4 mb-4">
-          <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-800/80 border border-slate-700/80 text-3xl shadow-inner select-none">
+          <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-slate-800/80 border border-slate-700/80 text-3xl shadow-inner select-none transition-transform hover:scale-105">
             {currentMoodInfo.emoji}
           </div>
           <div>
@@ -84,7 +105,7 @@ export default function MoodIndicator({
         <div className="mt-5 pt-4 border-t border-slate-800/80 space-y-2.5">
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span className="font-medium">Expression Vector Probabilities</span>
-            <span className="font-mono text-[11px]">Softmax Output</span>
+            <span className="font-mono text-[11px]">Normalized Softmax</span>
           </div>
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-2">
@@ -111,6 +132,8 @@ export default function MoodIndicator({
                             ? 'bg-amber-400'
                             : moodKey === MOODS.SAD
                             ? 'bg-indigo-400'
+                            : moodKey === MOODS.SURPRISED
+                            ? 'bg-pink-400'
                             : 'bg-cyan-400'
                           : 'bg-slate-600'
                       }`}
@@ -122,6 +145,29 @@ export default function MoodIndicator({
             })}
           </div>
         </div>
+
+        {/* Live 52-Blendshape Micro-Expressions Telemetry */}
+        {topBlendshapes.length > 0 && faceDetected && (
+          <div className="mt-4 pt-3 border-t border-slate-800/60">
+            <div className="flex items-center justify-between text-[11px] text-slate-400 mb-2">
+              <span className="font-mono flex items-center gap-1">
+                <Smile className="w-3 h-3 text-indigo-400" />
+                Live Blendshapes (Top 5)
+              </span>
+              <span className="text-[10px] font-mono text-emerald-400">478 mesh points</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {topBlendshapes.map((b) => (
+                <span
+                  key={b.name}
+                  className="px-2 py-0.5 rounded-md bg-slate-800/70 border border-slate-700/60 text-[10px] font-mono text-slate-300"
+                >
+                  <strong className="text-indigo-300">{b.name}</strong>: {b.score}%
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Live Gesture Tracking Card */}
@@ -129,23 +175,27 @@ export default function MoodIndicator({
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-mono font-semibold tracking-wider text-slate-400 uppercase flex items-center gap-1.5">
             <Hand className="w-3.5 h-3.5 text-indigo-400" />
-            Gesture Recognition
+            MediaPipe Gesture Recognizer
           </span>
-          <span className={`text-[11px] font-mono px-2 py-0.5 rounded-md border ${
-            detectedGesture !== 'none'
-              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 animate-pulse'
-              : 'bg-slate-800 text-slate-400 border-slate-700'
-          }`}>
-            {detectedGesture !== 'none' ? 'Action Triggered' : 'Listening'}
+          <span
+            className={`text-[11px] font-mono px-2 py-0.5 rounded-md border ${
+              detectedGesture !== 'none'
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 animate-pulse'
+                : 'bg-slate-800 text-slate-400 border-slate-700'
+            }`}
+          >
+            {detectedGesture !== 'none' ? 'Action Triggered' : 'Listening (21 Joints)'}
           </span>
         </div>
 
         <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
-          <div className={`p-2.5 rounded-xl ${
-            detectedGesture !== 'none'
-              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-              : 'bg-slate-800 text-slate-400'
-          }`}>
+          <div
+            className={`p-2.5 rounded-xl ${
+              detectedGesture !== 'none'
+                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                : 'bg-slate-800 text-slate-400'
+            }`}
+          >
             <activeGesture.icon className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
@@ -161,7 +211,7 @@ export default function MoodIndicator({
         <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-slate-400 font-mono">
           <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900/40 border border-slate-800/60">
             <span>👍</span>
-            <span>Thumbs Up: Start #1</span>
+            <span>Thumbs Up: Launch #1</span>
           </div>
           <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900/40 border border-slate-800/60">
             <span>✋</span>
@@ -170,7 +220,7 @@ export default function MoodIndicator({
         </div>
       </div>
 
-      {/* Interactive Simulation / Test Control Panel */}
+      {/* Interactive Simulation / Demo Lab */}
       {simulationMode && (
         <div className="p-5 rounded-3xl glass-panel-active border border-purple-500/40 animate-fadeIn">
           <div className="flex items-center justify-between mb-3">

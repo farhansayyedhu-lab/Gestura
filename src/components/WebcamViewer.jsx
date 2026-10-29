@@ -11,6 +11,11 @@ import {
   Lock,
   Sparkles,
   CheckCircle2,
+  Cpu,
+  Layers,
+  UserCheck,
+  Hand,
+  Loader2,
 } from 'lucide-react';
 
 export default function WebcamViewer({
@@ -29,6 +34,15 @@ export default function WebcamViewer({
   fps,
   detectedGesture,
   currentMood,
+  // Real AI Model States
+  isModelLoading,
+  isModelReady,
+  modelStatus,
+  modelError,
+  faceDetected,
+  handsDetectedCount,
+  overlayMode,
+  setOverlayMode,
 }) {
   const [isCurtainActive, setIsCurtainActive] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -52,7 +66,7 @@ export default function WebcamViewer({
       className="relative flex flex-col rounded-3xl overflow-hidden glass-panel border border-slate-800/90 shadow-2xl transition-all duration-300"
     >
       {/* Top Bar inside Viewer */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/80 bg-slate-900/60 z-20">
+      <div className="flex flex-wrap items-center justify-between px-4 py-3 border-b border-slate-800/80 bg-slate-900/60 z-20 gap-2">
         <div className="flex items-center gap-2.5">
           <div
             className={`w-2.5 h-2.5 rounded-full ${
@@ -62,18 +76,77 @@ export default function WebcamViewer({
             }`}
           />
           <span className="text-xs font-semibold text-slate-200 tracking-wide uppercase font-mono">
-            {isStreaming ? 'Live Vision Feed' : 'Camera Standby'}
+            {isStreaming ? 'Live Neural Feed' : 'Camera Standby'}
           </span>
+
           {isStreaming && (
             <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 border border-slate-700">
               {fps || 30} FPS
             </span>
           )}
+
+          {/* AI Model State Badge */}
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-950/60 border border-indigo-500/30 text-[11px] font-mono text-indigo-300">
+            {isModelLoading ? (
+              <>
+                <Loader2 className="w-3 h-3 text-indigo-400 animate-spin" />
+                <span>Loading Vision Models...</span>
+              </>
+            ) : isModelReady ? (
+              <>
+                <Cpu className="w-3 h-3 text-emerald-400" />
+                <span>MediaPipe AI Active</span>
+              </>
+            ) : (
+              <span>Model Offline</span>
+            )}
+          </div>
         </div>
 
-        {/* Device selector if multiple cameras detected */}
-        {availableDevices.length > 1 && isStreaming && (
-          <div className="flex items-center gap-1.5">
+        {/* Video Control Icons & HUD Options */}
+        <div className="flex items-center gap-2 text-slate-400">
+          {/* Overlay Mode Selector */}
+          {isStreaming && (
+            <div className="flex items-center gap-1 bg-slate-800/90 border border-slate-700 rounded-lg p-0.5">
+              <span className="text-[10px] font-mono text-slate-400 px-1.5 hidden md:inline">HUD:</span>
+              <button
+                onClick={() => setOverlayMode('contours')}
+                className={`px-1.5 py-0.5 text-[10px] rounded cursor-pointer transition ${
+                  overlayMode === 'contours'
+                    ? 'bg-indigo-600 text-white font-semibold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Facial contours & hand skeleton"
+              >
+                Contours
+              </button>
+              <button
+                onClick={() => setOverlayMode('mesh')}
+                className={`px-1.5 py-0.5 text-[10px] rounded cursor-pointer transition ${
+                  overlayMode === 'mesh'
+                    ? 'bg-indigo-600 text-white font-semibold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Dense face mesh (478 pts)"
+              >
+                Mesh
+              </button>
+              <button
+                onClick={() => setOverlayMode('off')}
+                className={`px-1.5 py-0.5 text-[10px] rounded cursor-pointer transition ${
+                  overlayMode === 'off'
+                    ? 'bg-indigo-600 text-white font-semibold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="Turn overlay off"
+              >
+                Clean
+              </button>
+            </div>
+          )}
+
+          {/* Multiple camera devices */}
+          {availableDevices.length > 1 && isStreaming && (
             <select
               value={selectedDeviceId}
               onChange={(e) => onSwitchCamera(e.target.value)}
@@ -85,11 +158,8 @@ export default function WebcamViewer({
                 </option>
               ))}
             </select>
-          </div>
-        )}
+          )}
 
-        {/* Video Control Icons */}
-        <div className="flex items-center gap-1.5 text-slate-400">
           <button
             onClick={() => setIsMirrored(!isMirrored)}
             className={`p-1.5 rounded-lg hover:text-white hover:bg-slate-800 transition cursor-pointer ${
@@ -134,13 +204,21 @@ export default function WebcamViewer({
           } ${!isStreaming || isCurtainActive ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
         />
 
-        {/* Canvas overlay for facial landmarks / gesture tracking */}
+        {/* Real MediaPipe Canvas Overlay for Face Mesh & Hand Skeleton */}
         <canvas
           ref={canvasRef}
           className={`absolute inset-0 w-full h-full pointer-events-none z-10 ${
             isMirrored ? 'scale-x-[-1]' : ''
           } ${!isStreaming || isCurtainActive ? 'hidden' : 'block'}`}
         />
+
+        {/* Model Loading Spinner Banner */}
+        {isModelLoading && isStreaming && (
+          <div className="absolute top-4 left-4 z-20 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/90 border border-indigo-500/40 text-xs text-indigo-300 shadow-xl backdrop-blur-md animate-pulse">
+            <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
+            <span className="font-mono text-[11px]">{modelStatus}</span>
+          </div>
+        )}
 
         {/* Privacy Curtain Overlay */}
         {isCurtainActive && isStreaming && (
@@ -161,7 +239,7 @@ export default function WebcamViewer({
           </div>
         )}
 
-        {/* Standby / Initial Permission Prompt Overlay */}
+        {/* Standby / Permission Prompt Overlay */}
         {!isStreaming && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-slate-950/80 to-[#0b1120]">
             {permissionState === 'denied' ? (
@@ -171,7 +249,8 @@ export default function WebcamViewer({
                 </div>
                 <h3 className="text-lg font-bold text-white mb-2">Camera Access Blocked</h3>
                 <p className="text-xs text-slate-300 leading-relaxed mb-5">
-                  {errorMessage || 'Camera permission was denied. Please allow camera permissions in your browser URL bar lock icon to enable live emotion and gesture analysis.'}
+                  {errorMessage ||
+                    'Camera permission was denied. Please allow camera permissions in your browser URL bar lock icon to enable live emotion and gesture analysis.'}
                 </p>
                 <button
                   onClick={() => onStartWebcam()}
@@ -192,17 +271,17 @@ export default function WebcamViewer({
                   </span>
                 </div>
                 <h3 className="text-lg font-bold text-white mb-1.5">
-                  Enable Camera for Real-Time Analysis
+                  Enable Camera for Real AI Analysis
                 </h3>
                 <p className="text-xs text-slate-400 leading-relaxed mb-6">
-                  Gestura analyzes subtle facial micro-expressions and hand gestures right inside your browser window. No frames are ever recorded or uploaded.
+                  Gestura runs Google MediaPipe Tasks Vision directly in your browser. Real-time 478-point 3D Face Landmarker, 52 expression blendshapes, and 21-joint Hand Gesture recognition. Zero video is ever stored or transmitted.
                 </p>
                 <button
                   onClick={() => onStartWebcam()}
                   className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-sm font-semibold shadow-xl shadow-indigo-500/25 transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer"
                 >
                   <Camera className="w-4 h-4" />
-                  <span>Start Camera Preview</span>
+                  <span>Start Live Neural Vision</span>
                 </button>
               </div>
             )}
@@ -211,27 +290,47 @@ export default function WebcamViewer({
 
         {/* Live HUD Floating Indicators */}
         {isStreaming && !isCurtainActive && (
-          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-20 pointer-events-none">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 backdrop-blur-md border border-slate-700/60 text-xs text-slate-200">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-20 pointer-events-none gap-2">
+            {/* Tracking Status */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-700/60 text-xs text-slate-200">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  faceDetected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                }`}
+              />
               <span className="font-mono text-[11px]">
-                GESTURE: {detectedGesture !== 'none' ? detectedGesture.toUpperCase().replace('_', ' ') : 'SEARCHING...'}
+                {faceDetected
+                  ? 'FACE LOCKED (478 PTS)'
+                  : 'SEARCHING FOR FACE...'}
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 backdrop-blur-md border border-slate-700/60 text-xs text-indigo-300">
+            {/* Gesture Status */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-700/60 text-xs text-slate-200">
+              <Hand className={`w-3.5 h-3.5 ${handsDetectedCount > 0 ? 'text-emerald-400' : 'text-slate-400'}`} />
+              <span className="font-mono text-[11px]">
+                {detectedGesture !== 'none'
+                  ? `GESTURE: ${detectedGesture.toUpperCase().replace('_', ' ')}`
+                  : handsDetectedCount > 0
+                  ? `HAND DETECTED (${handsDetectedCount})`
+                  : 'NO HAND IN FRAME'}
+              </span>
+            </div>
+
+            {/* Active Mood State */}
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-700/60 text-xs text-indigo-300">
               <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="font-mono text-[11px] capitalize">{currentMood} Focus</span>
+              <span className="font-mono text-[11px] capitalize">{currentMood}</span>
             </div>
           </div>
         )}
       </div>
 
       {/* Footer controls inside viewer card */}
-      <div className="px-4 py-3 bg-slate-900/40 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+      <div className="px-4 py-3 bg-slate-900/40 border-t border-slate-800/80 flex flex-wrap items-center justify-between text-xs text-slate-400 gap-2">
         <div className="flex items-center gap-2">
           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Local Client-Side Inference Active</span>
+          <span>Google MediaPipe Tasks Vision • 100% Client-Side WebAssembly</span>
         </div>
         {isStreaming && (
           <button
@@ -239,7 +338,7 @@ export default function WebcamViewer({
             className="flex items-center gap-1 text-slate-400 hover:text-rose-400 transition cursor-pointer"
           >
             <VideoOff className="w-3.5 h-3.5" />
-            <span>Turn Off</span>
+            <span>Turn Off Camera</span>
           </button>
         )}
       </div>
